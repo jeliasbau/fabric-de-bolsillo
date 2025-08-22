@@ -1,0 +1,34 @@
+# =====================================================
+# FABRIC DE BOLSILLO - FASE 1: MinIO (Data Lake)
+# =====================================================
+
+version: "3.9"
+
+name: fabric-fase1
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: fabric-minio
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"     # API S3
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"  # Web Console
+    volumes:
+      - ../../data/minio:/data
+    networks:
+      - fabric_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+networks:
+  fabric_net:
+    name: fabric_net
+    driver: bridge
