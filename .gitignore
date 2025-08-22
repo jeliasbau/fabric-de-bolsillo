@@ -1,0 +1,77 @@
+# =====================================================
+# FABRIC DE BOLSILLO - .gitignore
+# =====================================================
+
+# 🔐 Archivos sensibles
+.env
+*.env
+!.env.example
+
+# 💾 Datos persistentes de Docker
+data/
+*/data/
+
+# 🗃️ Logs y temporales
+*.log
+logs/
+tmp/
+temp/
+
+# 🐳 Docker
+.docker/
+docker-compose.override.yml
+
+# 💻 Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# 📝 Editors
+.vscode/
+.idea/
+*.sublime-*
+
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 📊 Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# 📦 Node.js (por si usamos n8n con módulos)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🔧 Backups y exports
+backups/
+exports/
+*.sql
+*.sql.gz
+*.dump
+
+# 🎯 Archivos específicos de pruebas
+test-data/
+sample-data/
+*-test.*
+
+# 📋 Archivos de configuración local
+config.local.*
+settings.local.*
+
+# 🛠️ Archivos de build
+dist/
+build/
