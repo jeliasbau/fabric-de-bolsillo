@@ -1,0 +1,58 @@
+# =====================================================
+# FABRIC DE BOLSILLO - FASE 2: MinIO + PostgreSQL
+# =====================================================
+
+version: "3.9"
+
+name: fabric-fase2
+
+services:
+  # ===== MINIO (Data Lake) =====
+  minio:
+    image: minio/minio:latest
+    container_name: fabric-minio
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"     # API S3
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"  # Web Console
+    volumes:
+      - ../../data/minio:/data
+    networks:
+      - fabric_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+  # ===== POSTGRESQL (Data Warehouse) =====
+  postgres:
+    image: postgres:16
+    container_name: fabric-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ../../data/postgres:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - fabric_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  fabric_net:
+    name: fabric_net
+    driver: bridge
