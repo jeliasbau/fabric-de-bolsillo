@@ -1,6 +1,6 @@
-# 🗄️ Fase 1: MinIO (Data Lake)
+# 🗂️ Fase 1: MinIO (Data Lake)
 
-**Objetivo**: Configurar y validar MinIO como almacén de datos tipo S3
+**Objetivo**: Configurar y validar MinIO como almacén de datos tipo S3, y cargar un modelo de datos profesional
 
 ## 🎯 Qué aprenderás en esta fase
 
@@ -9,6 +9,8 @@
 - **API S3**: Interfaz estándar para almacenamiento
 - **Docker networking**: Redes aisladas para servicios
 - **Health checks**: Validación automática de servicios
+- **Organización de Data Lake**: Estructura profesional de datos
+- **Modelo estrella**: Dimensiones y tablas de hechos
 
 ## 🏗️ Arquitectura de esta fase
 
@@ -19,6 +21,10 @@
 │                 │
 │ Port 9000: API  │
 │ Port 9001: UI   │
+│                 │
+│ Bucket:         │
+│ └─ datalake/    │
+│   └─modelo-ventas/
 └─────────────────┘
 ```
 
@@ -46,7 +52,7 @@ make test
 ### Variables de entorno (.env)
 
 | Variable | Descripción | Valor por defecto |
-|----------|-------------|------------------|
+|----------|-------------|-------------------|
 | `MINIO_API_PORT` | Puerto para API S3 | 9000 |
 | `MINIO_CONSOLE_PORT` | Puerto para consola web | 9001 |
 | `MINIO_ROOT_USER` | Usuario administrador | admin |
@@ -58,43 +64,100 @@ make test
 - **9000**: API S3 compatible (para aplicaciones)
 - **9001**: Consola web MinIO (para humanos)
 
+## 📊 Modelo de Datos: Ventas (Esquema Estrella)
+
+Este proyecto incluye un **modelo de datos profesional** con:
+
+### 📋 Dimensiones (7 tablas)
+- **dim_date.csv**: Calendario 2023-2024 (731 filas) con festivos españoles
+- **dim_currency.csv**: 4 monedas (EUR, USD, GBP, MXN)  
+- **dim_channel.csv**: 5 canales de venta
+- **dim_store.csv**: 30 tiendas (ES, FR, PT, MX, UK)
+- **dim_product.csv**: 300 productos en 6 categorías
+- **dim_salesperson.csv**: 80 vendedores con equipos
+- **dim_customer.csv**: 5,000 clientes B2C/B2B
+
+### 📈 Hechos (2 tablas)
+- **fact_exchangerates.csv**: Tipos de cambio diarios
+- **fact_sales.csv**: **200,000 líneas de ventas** con métricas completas
+
+## 📁 Estructura del Data Lake
+
+```
+datalake/
+└── modelo-ventas/
+    └── raw/                     # Datos originales
+        ├── dimensions/          # Tablas de dimensiones
+        │   ├── dim_date.csv
+        │   ├── dim_currency.csv
+        │   ├── dim_channel.csv
+        │   ├── dim_store.csv
+        │   ├── dim_product.csv
+        │   ├── dim_salesperson.csv
+        │   └── dim_customer.csv
+        ├── facts/               # Tablas de hechos  
+        │   ├── fact_exchangerates.csv
+        │   └── fact_sales.csv
+        └── metadata/            # Documentación
+            └── README_modelo_ventas.md
+```
+
+## 🚀 Cómo cargar el modelo de datos
+
+### Paso 1: Crear estructura
+1. Acceder a http://localhost:9001 (admin/admin12345)
+2. Crear bucket `datalake`
+3. Crear carpetas: `modelo-ventas/raw/dimensions/`, `facts/`, `metadata/`
+
+### Paso 2: Subir dimensiones
+Navegar a `datalake/modelo-ventas/raw/dimensions/` y subir:
+- dim_date.csv
+- dim_currency.csv  
+- dim_channel.csv
+- dim_store.csv
+- dim_product.csv
+- dim_salesperson.csv
+- dim_customer.csv
+
+### Paso 3: Subir hechos
+Navegar a `datalake/modelo-ventas/raw/facts/` y subir:
+- fact_exchangerates.csv
+- fact_sales.csv
+
+### Paso 4: Subir metadata
+Navegar a `datalake/modelo-ventas/raw/metadata/` y subir:
+- README_modelo_ventas.md
+
 ## 🧪 Validaciones y tests
 
-### Test automático
+### Test automático básico
 ```bash
 make test
 ```
 
-Esto ejecuta:
-1. ✅ Verifica que el contenedor esté corriendo
-2. ✅ Comprueba que responda en el puerto API
-3. ✅ Valida acceso a la consola web
-4. ✅ Crea bucket de prueba
-5. ✅ Sube archivo de ejemplo
-6. ✅ Lista archivos del bucket
-
-### Test manual
-
-**Acceso web:**
-1. Abre http://localhost:9001
-2. Login: `admin` / `admin12345`
-3. Crea un bucket llamado `test`
-4. Sube un archivo cualquiera
-
-**Verificar con curl:**
+### Validación del modelo de datos
 ```bash
-# Health check
-curl http://localhost:9000/minio/health/live
+# Listar todo el modelo cargado
+docker exec fabric-minio mc ls -r local/datalake/modelo-ventas/
 
-# Debe responder: 200 OK
+# Verificar dimensiones
+docker exec fabric-minio mc ls local/datalake/modelo-ventas/raw/dimensions/
+
+# Verificar hechos  
+docker exec fabric-minio mc ls local/datalake/modelo-ventas/raw/facts/
+
+# Ver estadísticas de archivos
+docker exec fabric-minio mc stat local/datalake/modelo-ventas/raw/facts/fact_sales.csv
 ```
 
-## 📊 Datos de ejemplo
+### Exploración rápida
+```bash
+# Ver las primeras líneas de ventas
+docker exec fabric-minio mc cat local/datalake/modelo-ventas/raw/facts/fact_sales.csv | head -5
 
-En `/sample-data/` tienes archivos CSV de ejemplo para subir:
-- `ventas.csv` - Datos de ventas ficticios
-- `productos.csv` - Catálogo de productos
-- `clientes.csv` - Base de clientes
+# Contar registros de fact_sales
+docker exec fabric-minio mc cat local/datalake/modelo-ventas/raw/facts/fact_sales.csv | wc -l
+```
 
 ## 🛠️ Comandos disponibles
 
@@ -167,23 +230,30 @@ MinIO es un servidor de almacenamiento de objetos compatible con Amazon S3. Es p
 3. **Fundación sólida**: Todos los demás servicios se conectarán aquí
 4. **Fácil de debuggear**: Interfaz web clara y logs comprensibles
 
+### Modelo Estrella en Data Lake
+- **Datos raw**: Se almacenan tal como vienen de origen
+- **Organización**: Por tipo (dimensiones/hechos) para facilitar ETL
+- **Flexibilidad**: Permite múltiples usos (BI, ML, análisis)
+- **Escalabilidad**: Estructura profesional preparada para crecer
+
 ## ✅ Criterios de éxito
 
 Antes de pasar a la Fase 2, asegúrate de que:
 - [ ] MinIO arranca sin errores
 - [ ] Puedes acceder a http://localhost:9001
-- [ ] Puedes crear buckets desde la web
-- [ ] Puedes subir y descargar archivos
-- [ ] El test automático pasa al 100%
-- [ ] Entiendes los conceptos básicos de S3
+- [ ] Bucket `datalake` creado con estructura modelo-ventas
+- [ ] 9 archivos CSV subidos y organizados
+- [ ] Puedes listar y explorar archivos con comandos mc
+- [ ] El modelo de datos está completo (200k+ registros en fact_sales)
+- [ ] Entiendes la estructura de Data Lake profesional
 
 ## 🎯 Próxima fase
 
-Una vez que MinIO funcione perfectamente, continúa con:
+Una vez que MinIO y tu modelo de datos funcionen perfectamente, continúa con:
 **[Fase 2: PostgreSQL](../fase-2-postgres/README.md)**
 
-Ahí añadiremos la base de datos y aprenderás a conectar servicios entre sí.
+Ahí importaremos tu modelo estrella a PostgreSQL y verás las dimensiones y hechos en acción como base de datos relacional.
 
 ---
 
-💡 **Tip**: No tengas prisa. Asegúrate de entender bien esta fase antes de continuar. ¡La base sólida es clave para el éxito!
+💡 **Tip**: Este modelo de 200,000 registros de ventas es perfecto para las siguientes fases. Representa un escenario realista que encontrarás en proyectos profesionales.
